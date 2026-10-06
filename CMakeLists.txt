@@ -228,6 +228,21 @@ if(WIN32)
 	list(APPEND VFS_SRC ${CMAKE_CURRENT_SOURCE_DIR}/src/platform/windows/vfs-w32.c)
 	file(GLOB OS_SRC ${CMAKE_CURRENT_SOURCE_DIR}/src/platform/windows/*.c)
 	source_group("Windows-specific code" FILES ${OS_SRC})
+elseif(EMSCRIPTEN)
+	# SPIKE PATCH (gba-wasm-core plan, spike 1): Emscripten also matches CMake's
+	# UNIX, which would otherwise hit the branch below and force
+	# USE_PTHREADS ON regardless of the cache value, pulling -pthread (and the
+	# SharedArrayBuffer/cross-origin-isolation requirement that comes with it)
+	# into a build meant to stay single-threaded. Also: emscripten's libc
+	# (musl) hides PATH_MAX/strdup/strlcpy behind _GNU_SOURCE under -std=c11,
+	# same as upstream does for Linux just below.
+	add_definitions(-D_GNU_SOURCE)
+
+	list(APPEND OS_DEFINES ENABLE_VFS_FD)
+	list(APPEND CORE_VFS_SRC ${CMAKE_CURRENT_SOURCE_DIR}/src/util/vfs/vfs-fd.c)
+	list(APPEND VFS_SRC ${CMAKE_CURRENT_SOURCE_DIR}/src/util/vfs/vfs-dirent.c)
+	file(GLOB OS_SRC ${CMAKE_CURRENT_SOURCE_DIR}/src/platform/posix/*.c)
+	source_group("POSIX-specific code" FILES ${OS_SRC})
 elseif(UNIX)
 	set(USE_PTHREADS ON)
 
